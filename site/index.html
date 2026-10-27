@@ -212,6 +212,15 @@
     overflow: hidden;
   }
   .meta .src { overflow: hidden; text-overflow: ellipsis; }
+  .meta .flag { font-size: 14px; line-height: 1; }
+  .orig {
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .new {
     color: #fff;
     background: var(--new);
@@ -223,6 +232,7 @@
   }
   .list a.read .title { color: var(--read); font-weight: 500; }
   .list a.read .new { display: none; }
+  .list a.read .orig { color: var(--read); }
   .empty { padding: 20px 12px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
@@ -301,6 +311,10 @@
     return item.ai ? "ai" : item.category;
   }
 
+  // "US" -> 🇺🇸 (国コードの各文字を Regional Indicator 記号に変換)
+  const flag = (cc) => cc.toUpperCase().replace(/./g, (ch) => String.fromCodePoint(0x1f1a5 + ch.charCodeAt(0)));
+  const COUNTRY = { US: "アメリカ", GB: "イギリス", DE: "ドイツ", CN: "中国", NL: "オランダ", FR: "フランス", KR: "韓国", IN: "インド" };
+
   function el(tag, cls, text) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -331,8 +345,14 @@
         if (it.summary) a.title = it.summary;
         if (read.has(it.link)) a.classList.add("read");
         a.append(el("div", "title", it.title));
+        if (it.title_orig) a.append(el("div", "orig", it.title_orig));
         const meta = el("div", "meta");
         if (it.published && Date.now() - new Date(it.published) < NEW_MS) meta.append(el("span", "new", "NEW"));
+        if (it.country && it.country !== "JP") {
+          const f = el("span", "flag", flag(it.country));
+          f.title = f.ariaLabel = COUNTRY[it.country] || it.country;
+          meta.append(f);
+        }
         meta.append(el("span", "src", it.source));
         if (it.published) meta.append(el("span", null, "· " + ago(it.published)));
         a.append(meta);
