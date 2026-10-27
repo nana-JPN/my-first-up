@@ -58,10 +58,10 @@ iPad mini の Safari → https://<ユーザー名>.github.io/my-first-up/
 | `country` | 発信元の国コード（`US` `GB` `DE` `CN` など）。`JP` 以外は記事に国旗を表示 |
 | `translate` | `true` にすると見出しを日本語に翻訳し、原文を小さく併記 |
 
-例: 韓国の英字メディアを海外テックに追加する場合
+例: 韓国のテックメディアを海外テックに追加する場合（URL はそのサイトの RSS に置き換え）
 
 ```json
-{ "name": "Korea JoongAng Daily", "url": "https://koreajoongangdaily.joins.com/xmls/joins", "category": "global", "country": "KR", "translate": true }
+{ "name": "（サイト名）", "url": "https://example.com/feed.xml", "category": "global", "country": "KR", "translate": true }
 ```
 
 翻訳には Google 翻訳の公開エンドポイント（API キー不要）を使っています。
