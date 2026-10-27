@@ -1,9 +1,9 @@
 [
   { "name": "ITmedia AI+",        "url": "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",                          "category": "ai",     "country": "JP" },
-  { "name": "OpenAI",             "url": "https://openai.com/news/rss.xml",                                     "category": "ai",     "country": "US" },
-  { "name": "Google AI",          "url": "https://blog.google/technology/ai/rss/",                              "category": "ai",     "country": "US" },
-  { "name": "TechCrunch AI",      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",       "category": "ai",     "country": "US" },
-  { "name": "The Verge AI",       "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",   "category": "ai",     "country": "US" },
+  { "name": "OpenAI",             "url": "https://openai.com/news/rss.xml",                                     "category": "ai",     "country": "US", "translate": true },
+  { "name": "Google AI",          "url": "https://blog.google/technology/ai/rss/",                              "category": "ai",     "country": "US", "translate": true },
+  { "name": "TechCrunch AI",      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",       "category": "ai",     "country": "US", "translate": true },
+  { "name": "The Verge AI",       "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",   "category": "ai",     "country": "US", "translate": true },
 
   { "name": "ITmedia NEWS",       "url": "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",                   "category": "jp",     "country": "JP" },
   { "name": "@IT",                "url": "https://rss.itmedia.co.jp/rss/2.0/ait.xml",                           "category": "jp",     "country": "JP" },
