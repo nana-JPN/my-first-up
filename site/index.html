@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IT News">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon.png">
+<title>IT・AIニュース</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --line: #e4e6eb;
+    --text: #1b1d22;
+    --muted: #6b7180;
+    --read: #a3a8b3;
+    --ai: #7c4dff;
+    --jp: #2f6fde;
+    --global: #0f9d8a;
+    --trend: #e8710a;
+    --new: #e53935;
+    --shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111318;
+      --panel: #1b1e25;
+      --line: #2b2f38;
+      --text: #e8eaee;
+      --muted: #9097a5;
+      --read: #5c6270;
+      --ai: #a98bff;
+      --jp: #6b9cff;
+      --global: #3cc9b4;
+      --trend: #ffa04d;
+      --new: #ff6b66;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111318;
+    --panel: #1b1e25;
+    --line: #2b2f38;
+    --text: #e8eaee;
+    --muted: #9097a5;
+    --read: #5c6270;
+    --ai: #a98bff;
+    --jp: #6b9cff;
+    --global: #3cc9b4;
+    --trend: #ffa04d;
+    --new: #ff6b66;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    overflow: hidden;            /* 一枚もの: ページ全体はスクロールさせない */
+  }
+
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 12px)
+             calc(env(safe-area-inset-bottom) + 10px) calc(env(safe-area-inset-left) + 12px);
+  }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .clock {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .date { font-size: 13px; color: var(--muted); line-height: 1.25; }
+  .date b { display: block; color: var(--text); font-size: 15px; }
+  .spacer { flex: 1; }
+  .status { font-size: 12px; color: var(--muted); text-align: right; line-height: 1.3; }
+  .status .warn { color: var(--new); }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    border-radius: 10px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .btn:active { transform: scale(.96); }
+  .btn.spin span { display: inline-block; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- panels ---------- */
+  .board {
+    display: grid;
+    gap: 10px;
+    min-height: 0;
+    /* 縦向き (744x1133): 2x2 */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  /* 横向き (1133x744): AI を少し広く 4 列 */
+  @media (orientation: landscape) and (min-width: 900px) {
+    .board {
+      grid-template-columns: 1.3fr 1fr 1fr 1fr;
+      grid-template-rows: 1fr;
+    }
+  }
+  /* iPhone などの狭い画面: 1 列 */
+  @media (max-width: 560px) {
+    .board { grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(60vh, 1fr)); overflow-y: auto; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .panel h2 {
+    margin: 0;
+    padding: 10px 12px 8px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel h2::before {
+    content: "";
+    width: 4px; height: 16px; border-radius: 2px;
+    background: var(--c);
+  }
+  .panel h2 .count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c);
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+    padding: 1px 7px;
+    border-radius: 99px;
+  }
+  .panel[data-cat="ai"]     { --c: var(--ai); }
+  .panel[data-cat="jp"]     { --c: var(--jp); }
+  .panel[data-cat="global"] { --c: var(--global); }
+  .panel[data-cat="trend"]  { --c: var(--trend); }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    flex: 1;
+  }
+  .list li + li { border-top: 1px solid var(--line); }
+  .list a {
+    display: block;
+    padding: 9px 12px;
+    color: inherit;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .list a:active { background: color-mix(in srgb, var(--c) 10%, transparent); }
+  .title {
+    font-size: 14px;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .meta {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .meta .src { overflow: hidden; text-overflow: ellipsis; }
+  .new {
+    color: #fff;
+    background: var(--new);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 5px;
+    border-radius: 4px;
+    line-height: 16px;
+  }
+  .list a.read .title { color: var(--read); font-weight: 500; }
+  .list a.read .new { display: none; }
+  .empty { padding: 20px 12px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="clock" id="clock">--:--</div>
+    <div class="date" id="date"></div>
+    <div class="spacer"></div>
+    <div class="status" id="status">読み込み中…</div>
+    <button class="btn" id="theme" aria-label="表示テーマを切り替え" title="テーマ">自動</button>
+    <button class="btn" id="reload" aria-label="ニュースを再読み込み" title="再読み込み"><span>↻</span></button>
+  </header>
+
+  <main class="board">
+    <section class="panel" data-cat="ai"><h2>AI<span class="count"></span></h2><ul class="list"></ul></section>
+    <section class="panel" data-cat="jp"><h2>国内 IT<span class="count"></span></h2><ul class="list"></ul></section>
+    <section class="panel" data-cat="global"><h2>海外テック<span class="count"></span></h2><ul class="list"></ul></section>
+    <section class="panel" data-cat="trend"><h2>エンジニア トレンド<span class="count"></span></h2><ul class="list"></ul></section>
+  </main>
+</div>
+
+<script>
+(() => {
+  const DATA_URL = "news.json";
+  const REFRESH_MS = 10 * 60 * 1000;    // 10 分ごとに news.json を取り直す
+  const NEW_MS = 2 * 60 * 60 * 1000;    // 2 時間以内の記事に NEW
+  const MAX_PER_PANEL = 50;
+  const READ_KEY = "itnews.read";
+  const THEME_KEY = "itnews.theme";
+
+  const $ = (s) => document.querySelector(s);
+  let data = null;
+
+  // ---- storage (プライベートブラウズ等で失敗しても動くように) ----
+  const store = {
+    get(k, fb) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  let read = new Set(store.get(READ_KEY, []));
+
+  // ---- theme: auto -> dark -> light ----
+  const themes = ["auto", "dark", "light"];
+  function applyTheme(t) {
+    if (t === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+    $("#theme").textContent = { auto: "自動", dark: "ダーク", light: "ライト" }[t];
+  }
+  let theme = store.get(THEME_KEY, "auto");
+  applyTheme(theme);
+  $("#theme").onclick = () => {
+    theme = themes[(themes.indexOf(theme) + 1) % themes.length];
+    store.set(THEME_KEY, theme);
+    applyTheme(theme);
+  };
+
+  // ---- clock ----
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  function tick() {
+    const d = new Date();
+    $("#clock").textContent = d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    $("#date").innerHTML = `<b>${d.getMonth() + 1}月${d.getDate()}日 (${WD[d.getDay()]})</b>${d.getFullYear()}`;
+  }
+
+  function ago(iso) {
+    if (!iso) return "";
+    const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (m < 1) return "たった今";
+    if (m < 60) return `${m}分前`;
+    if (m < 60 * 24) return `${Math.floor(m / 60)}時間前`;
+    return `${Math.floor(m / 1440)}日前`;
+  }
+
+  function panelOf(item) {
+    if (item.category === "trend") return "trend";
+    return item.ai ? "ai" : item.category;
+  }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function render() {
+    if (!data) return;
+    const groups = { ai: [], jp: [], global: [], trend: [] };
+    for (const it of data.items) groups[panelOf(it)]?.push(it);
+
+    for (const [cat, items] of Object.entries(groups)) {
+      const panel = document.querySelector(`.panel[data-cat="${cat}"]`);
+      const list = panel.querySelector(".list");
+      const scroll = list.scrollTop;
+      list.replaceChildren();
+      const shown = items.slice(0, MAX_PER_PANEL);
+      const unread = shown.filter((it) => !read.has(it.link)).length;
+      panel.querySelector(".count").textContent = `未読 ${unread}`;
+
+      if (!shown.length) list.append(el("li", "empty", "記事がありません"));
+      for (const it of shown) {
+        const a = el("a");
+        a.href = it.link;
+        a.target = "_blank";
+        a.rel = "noopener";
+        if (it.summary) a.title = it.summary;
+        if (read.has(it.link)) a.classList.add("read");
+        a.append(el("div", "title", it.title));
+        const meta = el("div", "meta");
+        if (it.published && Date.now() - new Date(it.published) < NEW_MS) meta.append(el("span", "new", "NEW"));
+        meta.append(el("span", "src", it.source));
+        if (it.published) meta.append(el("span", null, "· " + ago(it.published)));
+        a.append(meta);
+        a.addEventListener("click", () => markRead(it.link));
+        const li = el("li");
+        li.append(a);
+        list.append(li);
+      }
+      list.scrollTop = scroll;
+    }
+    renderStatus();
+  }
+
+  function renderStatus() {
+    if (!data) return;
+    const failed = data.sources.filter((s) => !s.ok).map((s) => s.name);
+    const s = $("#status");
+    s.replaceChildren(document.createTextNode(`更新 ${ago(data.generated_at)}`), el("br"));
+    s.append(failed.length
+      ? el("span", "warn", `取得失敗: ${failed.join(", ")}`)
+      : document.createTextNode(`${data.sources.length} サイト / ${data.items.length} 件`));
+  }
+
+  function markRead(link) {
+    read.add(link);
+    // 現在の記事にない既読情報は捨てて肥大化を防ぐ
+    if (data) {
+      const live = new Set(data.items.map((i) => i.link));
+      read = new Set([...read].filter((l) => live.has(l)));
+    }
+    store.set(READ_KEY, [...read]);
+    setTimeout(render, 300);
+  }
+
+  async function load() {
+    const btn = $("#reload");
+    btn.classList.add("spin");
+    try {
+      const res = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      data = await res.json();
+      render();
+    } catch (e) {
+      $("#status").replaceChildren(el("span", "warn", "ニュースを取得できませんでした"));
+    } finally {
+      btn.classList.remove("spin");
+    }
+  }
+
+  $("#reload").onclick = load;
+  // 画面に戻ってきたとき (スリープ解除・タブ切替) に取り直す
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { tick(); load(); } });
+
+  tick();
+  setInterval(() => { tick(); renderStatus(); }, 15 * 1000);
+  setInterval(load, REFRESH_MS);
+  setInterval(render, 60 * 1000);      // 「○分前」表示を更新
+  load();
+})();
+</script>
+</body>
+</html>
