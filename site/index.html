@@ -261,11 +261,13 @@
   const REFRESH_MS = 10 * 60 * 1000;    // 10 分ごとに news.json を取り直す
   const NEW_MS = 2 * 60 * 60 * 1000;    // 2 時間以内の記事に NEW
   const MAX_PER_PANEL = 50;
+  const STALE_MS = 90 * 60 * 1000;      // これより古いデータは警告表示
   const READ_KEY = "itnews.read";
   const THEME_KEY = "itnews.theme";
 
   const $ = (s) => document.querySelector(s);
   let data = null;
+  let notice = null;                    // 更新ボタン押下後に一時的に出すメッセージ
 
   // ---- storage (プライベートブラウズ等で失敗しても動くように) ----
   const store = {
@@ -370,8 +372,13 @@
     if (!data) return;
     const failed = data.sources.filter((s) => !s.ok).map((s) => s.name);
     const s = $("#status");
-    s.replaceChildren(document.createTextNode(`更新 ${ago(data.generated_at)}`), el("br"));
-    s.append(failed.length
+    const at = new Date(data.generated_at);
+    const hhmm = at.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    s.replaceChildren(Date.now() - at > STALE_MS
+      ? el("span", "warn", `${hhmm} 取得（${ago(data.generated_at)}・自動更新が遅れています）`)
+      : document.createTextNode(`${hhmm} 取得（${ago(data.generated_at)}）`), el("br"));
+    if (notice) s.append(el("span", null, notice));
+    else s.append(failed.length
       ? el("span", "warn", `取得失敗: ${failed.join(", ")}`)
       : document.createTextNode(`${data.sources.length} サイト / ${data.items.length} 件`));
   }
@@ -387,13 +394,18 @@
     setTimeout(render, 300);
   }
 
-  async function load() {
+  async function load(manual = false) {
     const btn = $("#reload");
+    const prev = data?.generated_at;
     btn.classList.add("spin");
     try {
       const res = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(res.status);
       data = await res.json();
+      if (manual) {
+        notice = data.generated_at === prev ? "新着なし（サーバー側で15分ごとに取得）" : "最新の内容に更新しました";
+        setTimeout(() => { notice = null; renderStatus(); }, 5000);
+      }
       render();
     } catch (e) {
       $("#status").replaceChildren(el("span", "warn", "ニュースを取得できませんでした"));
@@ -402,7 +414,7 @@
     }
   }
 
-  $("#reload").onclick = load;
+  $("#reload").onclick = () => load(true);
   // 画面に戻ってきたとき (スリープ解除・タブ切替) に取り直す
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { tick(); load(); } });
 

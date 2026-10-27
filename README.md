@@ -76,3 +76,10 @@ python3 scripts/fetch_news.py      # site/news.json を生成
 cd site && python3 -m http.server 8000
 # → http://localhost:8000 を開く
 ```
+
+## ニュースが更新されないとき
+
+- 画面右上の「○○:○○ 取得」が、サーバー側でニュースを集めた時刻です。90 分以上前だと赤字で警告が出ます。
+- ↻ ボタンは「サーバーにある最新データを読み直す」ボタンです。サーバー側の取得（15 分ごと）が動いていないと、押しても内容は変わりません。
+- GitHub の定期実行は混雑時に遅れたり、スキップされたりすることがあります。すぐ最新にしたいときは、
+  GitHub の **Actions** タブ → 「Update news dashboard」→ **Run workflow** で手動実行できます（スマホの GitHub アプリからも可能）。
