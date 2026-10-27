@@ -53,6 +53,20 @@ iPad mini の Safari → https://<ユーザー名>.github.io/my-first-up/
 { "name": "窓の杜", "url": "https://forest.watch.impress.co.jp/data/rss/1.0/wf/feed.rdf", "category": "jp" }
 ```
 
+| 項目 | 意味 |
+| --- | --- |
+| `country` | 発信元の国コード（`US` `GB` `DE` `CN` など）。`JP` 以外は記事に国旗を表示 |
+| `translate` | `true` にすると見出しを日本語に翻訳し、原文を小さく併記 |
+
+例: 韓国の英字メディアを海外テックに追加する場合
+
+```json
+{ "name": "Korea JoongAng Daily", "url": "https://koreajoongangdaily.joins.com/xmls/joins", "category": "global", "country": "KR", "translate": true }
+```
+
+翻訳には Google 翻訳の公開エンドポイント（API キー不要）を使っています。
+非公式の仕組みのため、まれに失敗することがあり、その場合は原文の英語のまま表示されます。
+
 RSS 2.0 / Atom / RSS 1.0 (RDF) のいずれにも対応しています。取得に失敗したフィードは画面右上に「取得失敗: ○○」と表示されます。
 
 ## ローカルで試す

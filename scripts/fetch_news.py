@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 HERE = Path(__file__).resolve().parent
@@ -26,6 +27,8 @@ MAX_PER_FEED = 15
 MAX_AGE = timedelta(days=4)
 TIMEOUT = 20
 USER_AGENT = "Mozilla/5.0 (compatible; it-news-dashboard/1.0)"
+# Google 翻訳の Web 版が使う公開エンドポイント (API キー不要)。失敗時は原文のまま表示する。
+TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
 
 # Articles from non-AI feeds whose title matches this are also shown in the AI column.
 AI_KEYWORDS = re.compile(
@@ -117,6 +120,19 @@ def fetch(feed):
         return res.read()
 
 
+def translate(title):
+    """Translate a headline into Japanese. Returns None on failure."""
+    query = urlencode({"client": "gtx", "sl": "auto", "tl": "ja", "dt": "t", "q": title})
+    req = Request(f"{TRANSLATE_URL}?{query}", headers={"User-Agent": USER_AGENT})
+    try:
+        with urlopen(req, timeout=TIMEOUT) as res:
+            body = json.loads(res.read().decode("utf-8"))
+        return "".join(seg[0] for seg in body[0] if seg and seg[0]).strip() or None
+    except Exception as exc:
+        print(f"[translate failed] {title[:40]}: {exc}", file=sys.stderr)
+        return None
+
+
 def collect(feed, now):
     try:
         raw_items = parse_feed(fetch(feed))
@@ -136,6 +152,7 @@ def collect(feed, now):
             "title": title,
             "link": it["link"],
             "source": feed["name"],
+            "country": feed.get("country", "JP"),
             "category": feed["category"],
             "ai": feed["category"] == "ai" or bool(AI_KEYWORDS.search(title)),
             "published": dt.isoformat() if dt else None,
@@ -159,6 +176,16 @@ def build(feeds, now=None):
                 continue
             seen.add(it["link"])
             items.append(it)
+    translate_sources = {f["name"] for f in feeds if f.get("translate")}
+    targets = [it for it in items if it["source"] in translate_sources]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for it, ja in zip(targets, pool.map(lambda it: translate(it["title"]), targets)):
+            if ja and ja != it["title"]:
+                it["title_orig"] = it["title"]
+                it["title"] = ja
+                it["ai"] = it["ai"] or bool(AI_KEYWORDS.search(ja))
+    print(f"translated {sum('title_orig' in it for it in targets)}/{len(targets)} titles", file=sys.stderr)
+
     # Newest first; undated items go last.
     items.sort(key=lambda x: x["published"] or "", reverse=True)
 
