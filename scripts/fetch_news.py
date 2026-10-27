@@ -77,9 +77,23 @@ def clean_summary(raw, limit=120):
     return s if len(s) <= limit else s[: limit - 1] + "…"
 
 
+def _html_entity(m):
+    ch = html.unescape(m.group(0))
+    return ch if ch != m.group(0) else "&amp;" + m.group(0)[1:]
+
+
 def parse_feed(xml_bytes):
     """Return a list of {title, link, published, summary} from RSS 2.0, Atom or RSS 1.0 (RDF)."""
-    root = ET.fromstring(xml_bytes)
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError:
+        # 一部のフィードは XML として不正な制御文字や裸の "&" を含むことがあるので、取り除いて再挑戦する
+        s = xml_bytes.decode("utf-8", errors="replace")
+        s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", s)
+        s = re.sub(r"&(?!(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#x[0-9A-Fa-f]+);)", "&amp;", s)
+        # XML で未定義の HTML 実体参照 (&copy; &nbsp; など) は文字に置き換える
+        s = re.sub(r"&(?!(?:amp|lt|gt|quot|apos);)[A-Za-z][A-Za-z0-9]*;", _html_entity, s)
+        root = ET.fromstring(s)
     items = []
 
     if root.tag == f"{{{NS['atom']}}}feed":
