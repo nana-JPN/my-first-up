@@ -2,7 +2,9 @@ name: Update news dashboard
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # 30 分ごと (UTC)。GitHub 側の混雑で数分遅れることがあります
+    # 15 分ごと。GitHub の定期実行は混雑時に遅延・スキップされることがあり、
+    # 特に毎時 0 分・30 分は混みやすいので、半端な分を指定している
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:          # Actions タブから手動実行も可能
   push:
     branches: [main]
