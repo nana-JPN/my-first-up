@@ -9,14 +9,17 @@ Usage:
 
 import html
 import json
+import os
 import re
 import sys
+import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlencode
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 HERE = Path(__file__).resolve().parent
@@ -29,6 +32,8 @@ TIMEOUT = 20
 USER_AGENT = "Mozilla/5.0 (compatible; it-news-dashboard/1.0)"
 # Google 翻訳の Web 版が使う公開エンドポイント (API キー不要)。失敗時は原文のまま表示する。
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
+# 1 リクエストにまとめる見出しの文字数の上限。リクエスト数を減らして 429 (Too Many Requests) を避ける
+TRANSLATE_BATCH_CHARS = 1500
 
 # Articles from non-AI feeds whose title matches this are also shown in the AI column.
 AI_KEYWORDS = re.compile(
@@ -134,17 +139,69 @@ def fetch(feed):
         return res.read()
 
 
-def translate(title):
-    """Translate a headline into Japanese. Returns None on failure."""
-    query = urlencode({"client": "gtx", "sl": "auto", "tl": "ja", "dt": "t", "q": title})
+def _request_translation(text):
+    query = urlencode({"client": "gtx", "sl": "auto", "tl": "ja", "dt": "t", "q": text})
     req = Request(f"{TRANSLATE_URL}?{query}", headers={"User-Agent": USER_AGENT})
+    for wait in (5, 15, None):
+        try:
+            with urlopen(req, timeout=TIMEOUT) as res:
+                body = json.loads(res.read().decode("utf-8"))
+            return "".join(seg[0] for seg in body[0] if seg and seg[0])
+        except HTTPError as exc:
+            if exc.code != 429 or wait is None:
+                raise
+            time.sleep(wait)
+
+
+def translate_batch(titles):
+    """Translate headlines in one request (one per line). Returns {original: Japanese}."""
     try:
-        with urlopen(req, timeout=TIMEOUT) as res:
-            body = json.loads(res.read().decode("utf-8"))
-        return "".join(seg[0] for seg in body[0] if seg and seg[0]).strip() or None
+        lines = _request_translation("\n".join(titles)).strip().split("\n")
     except Exception as exc:
-        print(f"[translate failed] {title[:40]}: {exc}", file=sys.stderr)
-        return None
+        print(f"[translate failed] {len(titles)} titles: {exc}", file=sys.stderr)
+        return {}
+    if len(lines) == len(titles):
+        return {t: line.strip() for t, line in zip(titles, lines)}
+    # 行数がずれたら対応が取れないので、半分ずつに分けてやり直す
+    if len(titles) == 1:
+        return {}
+    mid = len(titles) // 2
+    return {**translate_batch(titles[:mid]), **translate_batch(titles[mid:])}
+
+
+def translate_all(titles, cache):
+    """Return {original: Japanese}. Titles already in cache are not sent again."""
+    unique = list(dict.fromkeys(titles))
+    result = {t: cache[t] for t in unique if t in cache}
+    todo = [t for t in unique if t not in result]
+    batches, cur = [], []
+    for t in todo:
+        if cur and sum(map(len, cur)) + len(t) > TRANSLATE_BATCH_CHARS:
+            batches.append(cur)
+            cur = []
+        cur.append(t)
+    if cur:
+        batches.append(cur)
+    for i, batch in enumerate(batches):
+        if i:
+            time.sleep(1)
+        result.update(translate_batch(batch))
+    print(f"translation: {len(unique) - len(todo)} cached, {len(result) - len(unique) + len(todo)}/{len(todo)} new "
+          f"in {len(batches)} batches", file=sys.stderr)
+    return result
+
+
+def load_cache(url):
+    """Previously published translations as {original: Japanese}."""
+    if not url:
+        return {}
+    try:
+        with urlopen(Request(url, headers={"User-Agent": USER_AGENT}), timeout=TIMEOUT) as res:
+            prev = json.loads(res.read().decode("utf-8"))
+        return {it["title_orig"]: it["title"] for it in prev.get("items", []) if it.get("title_orig")}
+    except Exception as exc:
+        print(f"[cache unavailable] {exc}", file=sys.stderr)
+        return {}
 
 
 def collect(feed, now):
@@ -178,7 +235,7 @@ def collect(feed, now):
     return out, True
 
 
-def build(feeds, now=None):
+def build(feeds, now=None, cache=None):
     now = now or datetime.now(timezone.utc)
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(lambda f: collect(f, now), feeds))
@@ -192,9 +249,12 @@ def build(feeds, now=None):
             items.append(it)
     translate_sources = {f["name"] for f in feeds if f.get("translate")}
     targets = [it for it in items if it["source"] in translate_sources]
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        for it, ja in zip(targets, pool.map(lambda it: translate(it["title"]), targets)):
-            if ja and ja != it["title"]:
+    for it in targets:
+        it["title"] = re.sub(r"\s+", " ", it["title"])  # 改行区切りでまとめて送るため
+    ja_map = translate_all([it["title"] for it in targets], cache or {})
+    for it in targets:
+        ja = ja_map.get(it["title"])
+        if ja and ja != it["title"]:
                 it["title_orig"] = it["title"]
                 it["title"] = ja
                 it["ai"] = it["ai"] or bool(AI_KEYWORDS.search(ja))
@@ -216,7 +276,8 @@ def build(feeds, now=None):
 def main():
     output = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUTPUT
     feeds = json.loads(FEEDS_FILE.read_text(encoding="utf-8"))
-    data = build(feeds)
+    # 公開中の news.json にある翻訳を再利用する (ワークフローで NEWS_CACHE_URL を指定)
+    data = build(feeds, cache=load_cache(os.environ.get("NEWS_CACHE_URL")))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     ok = sum(s["ok"] for s in data["sources"])

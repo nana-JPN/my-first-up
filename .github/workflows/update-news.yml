@@ -33,6 +33,8 @@ jobs:
 
       - name: Fetch feeds
         run: python scripts/fetch_news.py site/news.json
+        env:
+          NEWS_CACHE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/news.json
 
       - uses: actions/configure-pages@v5
 
