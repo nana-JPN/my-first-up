@@ -248,7 +248,7 @@
   </header>
 
   <main class="board">
-    <section class="panel" data-cat="ai"><h2>AI<span class="count"></span></h2><ul class="list"></ul></section>
+    <section class="panel" data-cat="ai"><h2>国内 AI<span class="count"></span></h2><ul class="list"></ul></section>
     <section class="panel" data-cat="jp"><h2>国内 IT<span class="count"></span></h2><ul class="list"></ul></section>
     <section class="panel" data-cat="global"><h2>海外テック<span class="count"></span></h2><ul class="list"></ul></section>
     <section class="panel" data-cat="trend"><h2>エンジニア トレンド<span class="count"></span></h2><ul class="list"></ul></section>
@@ -308,9 +308,10 @@
     return `${Math.floor(m / 1440)}日前`;
   }
 
+  // AI パネルは国内のみ: 国内 IT の AI 関連記事は AI パネルへ、海外の AI 記事は海外テックのまま
   function panelOf(item) {
-    if (item.category === "trend") return "trend";
-    return item.ai ? "ai" : item.category;
+    if (item.category === "jp" && item.ai) return "ai";
+    return item.category;
   }
 
   // "US" -> 🇺🇸 (国コードの各文字を Regional Indicator 記号に変換)

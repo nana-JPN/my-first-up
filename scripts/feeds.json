@@ -1,9 +1,12 @@
 [
   { "name": "ITmedia AI+",        "url": "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",                          "category": "ai",     "country": "JP" },
-  { "name": "OpenAI",             "url": "https://openai.com/news/rss.xml",                                     "category": "ai",     "country": "US", "translate": true },
-  { "name": "Google AI",          "url": "https://blog.google/technology/ai/rss/",                              "category": "ai",     "country": "US", "translate": true },
-  { "name": "TechCrunch AI",      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",       "category": "ai",     "country": "US", "translate": true },
-  { "name": "The Verge AI",       "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",   "category": "ai",     "country": "US", "translate": true },
+  { "name": "AINOW",              "url": "https://ainow.ai/feed/",                                              "category": "ai",     "country": "JP" },
+  { "name": "Zenn (AI)",          "url": "https://zenn.dev/topics/ai/feed",                                     "category": "ai",     "country": "JP" },
+  { "name": "Qiita (AI)",         "url": "https://qiita.com/tags/ai/feed",                                      "category": "ai",     "country": "JP" },
+  { "name": "OpenAI",             "url": "https://openai.com/news/rss.xml",                                     "category": "global", "country": "US", "translate": true },
+  { "name": "Google AI",          "url": "https://blog.google/technology/ai/rss/",                              "category": "global", "country": "US", "translate": true },
+  { "name": "TechCrunch AI",      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",       "category": "global", "country": "US", "translate": true },
+  { "name": "The Verge AI",       "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",   "category": "global", "country": "US", "translate": true },
 
   { "name": "ITmedia NEWS",       "url": "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",                   "category": "jp",     "country": "JP" },
   { "name": "@IT",                "url": "https://rss.itmedia.co.jp/rss/2.0/ait.xml",                           "category": "jp",     "country": "JP" },

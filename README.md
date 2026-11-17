@@ -42,7 +42,7 @@ iPad mini の Safari → https://<ユーザー名>.github.io/my-first-up/
 
 | category | 表示パネル |
 | --- | --- |
-| `ai` | AI |
+| `ai` | 国内 AI |
 | `jp` | 国内 IT |
 | `global` | 海外テック |
 | `trend` | エンジニア トレンド |
