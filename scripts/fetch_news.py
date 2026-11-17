@@ -273,6 +273,8 @@ def build(feeds, now=None, cache=None):
 
     return {
         "generated_at": now.isoformat(),
+        # 公開した index.html と同じ版かを画面側で確かめるための識別子
+        "build": os.environ.get("GITHUB_SHA", ""),
         "sources": [
             {"name": f["name"], "category": f["category"], "ok": ok}
             for f, (_, ok) in zip(feeds, results)

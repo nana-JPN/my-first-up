@@ -258,6 +258,7 @@
 <script>
 (() => {
   const DATA_URL = "news.json";
+  const BUILD = "__BUILD__";            // 公開時にコミット ID に置き換わる
   const REFRESH_MS = 10 * 60 * 1000;    // 10 分ごとに news.json を取り直す
   const NEW_MS = 2 * 60 * 60 * 1000;    // 2 時間以内の記事に NEW
   const MAX_PER_PANEL = 50;
@@ -404,6 +405,17 @@
       const res = await fetch(`${DATA_URL}?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(res.status);
       data = await res.json();
+      // 画面 (index.html) が古いままキャッシュされていたら、1 回だけ読み込み直す
+      if (data.build && !BUILD.startsWith("__") && data.build !== BUILD) {
+        const key = "itnews.reloadedFor";
+        let done = null;
+        try { done = sessionStorage.getItem(key); } catch {}
+        if (done !== data.build) {
+          try { sessionStorage.setItem(key, data.build); } catch {}
+          location.reload();
+          return;
+        }
+      }
       if (manual) {
         notice = data.generated_at === prev ? "新着なし（サーバー側で15分ごとに取得）" : "最新の内容に更新しました";
         setTimeout(() => { notice = null; renderStatus(); }, 5000);
