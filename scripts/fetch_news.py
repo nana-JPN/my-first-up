@@ -27,7 +27,7 @@ FEEDS_FILE = HERE / "feeds.json"
 DEFAULT_OUTPUT = HERE.parent / "site" / "news.json"
 
 MAX_PER_FEED = 15
-MAX_AGE = timedelta(days=4)
+MAX_AGE_DAYS = 4  # feeds.json の max_age_days で上書き可 (更新頻度の低いフィード向け)
 TIMEOUT = 20
 USER_AGENT = "Mozilla/5.0 (compatible; it-news-dashboard/1.0)"
 # Google 翻訳の Web 版が使う公開エンドポイント (API キー不要)。失敗時は原文のまま表示する。
@@ -36,6 +36,13 @@ TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
 TRANSLATE_BATCH_CHARS = 1500
 
 # Articles from non-AI feeds whose title matches this are also shown in the AI column.
+# Articles from domestic IT feeds whose title matches this go to the security column.
+SECURITY_KEYWORDS = re.compile(
+    r"脆弱性|ゼロデイ|不正アクセス|サイバー攻撃|ランサムウェア|マルウェア|フィッシング|情報漏え?い|漏洩|"
+    r"セキュリティ|パッチ|CVE-\d|DDoS|乗っ取り|不正ログイン|標的型",
+    re.IGNORECASE,
+)
+
 AI_KEYWORDS = re.compile(
     r"\bAI\b|生成AI|人工知能|LLM|ChatGPT|GPT-?\d|OpenAI|Claude|Anthropic|Gemini|"
     r"Copilot|機械学習|深層学習|ディープラーニング|Llama|Mistral|エージェント|\bagents?\b",
@@ -216,7 +223,7 @@ def collect(feed, now):
         dt = parse_date(it["published"])
         if not it["title"] or not it["link"]:
             continue
-        if dt and now - dt > MAX_AGE:
+        if dt and now - dt > timedelta(days=feed.get("max_age_days", MAX_AGE_DAYS)):
             continue
         title = html.unescape(it["title"])
         out.append({
@@ -226,6 +233,7 @@ def collect(feed, now):
             "country": feed.get("country", "JP"),
             "category": feed["category"],
             "ai": feed["category"] == "ai" or bool(AI_KEYWORDS.search(title)),
+            "security": feed["category"] == "security" or bool(SECURITY_KEYWORDS.search(title)),
             "published": dt.isoformat() if dt else None,
             "summary": clean_summary(it["summary"]),
         })
